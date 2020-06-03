@@ -381,6 +381,14 @@ static void surface_frame_handle_done(void *data, struct wl_callback *callback,
 	wl_callback_destroy(callback);
 	surface->frame_pending = false;
 
+	if (surface->fade.direction == IN && surface->state->quitting){
+		surface->fade.direction = OUT;
+		surface->fade.start_time = time;
+		surface->fade.old_time=0;
+		surface->fade.current_time = time;
+		surface->fade.target_time = surface->fade.current_time + surface->state->args.fade_out;
+	}
+
 	if (surface->dirty) {
 		// Schedule a frame in case the surface is damaged again
 		struct wl_callback *callback = wl_surface_frame(surface->surface);
@@ -391,6 +399,9 @@ static void surface_frame_handle_done(void *data, struct wl_callback *callback,
 		if (!fade_is_complete(&surface->fade)) {
 			render_background_fade(surface, time);
 			surface->dirty = true;
+		} else if ( surface->state->quitting ){
+			surface->state->run_display = false;
+			return;
 		}
 
 		render_frame(surface);
@@ -957,6 +968,7 @@ static int parse_options(int argc, char **argv, struct swaylock_state *state,
 		LO_TIMESTR,
 		LO_DATESTR,
 		LO_FADE_IN,
+		LO_FADE_OUT,
 		LO_SUBMIT_ON_TOUCH,
 		LO_GRACE,
 		LO_GRACE_NO_MOUSE,
@@ -1032,6 +1044,7 @@ static int parse_options(int argc, char **argv, struct swaylock_state *state,
 		{"timestr", required_argument, NULL, LO_TIMESTR},
 		{"datestr", required_argument, NULL, LO_DATESTR},
 		{"fade-in", required_argument, NULL, LO_FADE_IN},
+		{"fade-out", required_argument, NULL, LO_FADE_OUT},
 		{"submit-on-touch", no_argument, NULL, LO_SUBMIT_ON_TOUCH},
 		{"grace", required_argument, NULL, LO_GRACE},
 		{"grace-no-mouse", no_argument, NULL, LO_GRACE_NO_MOUSE},
@@ -1058,6 +1071,8 @@ static int parse_options(int argc, char **argv, struct swaylock_state *state,
 			"Detach from the controlling terminal after locking.\n"
 		"  --fade-in <seconds>              "
 			"Make the lock screen fade in instead of just popping in.\n"
+		"  --fade-out <seconds>              "
+			"Make the lock screen fade out instead of just disappearing.\n"
 		"  --submit-on-touch                "
 			"Submit password in response to a touch event.\n"
 		"  --grace <seconds>                "
@@ -1579,6 +1594,11 @@ static int parse_options(int argc, char **argv, struct swaylock_state *state,
 				state->args.fade_in = parse_seconds(optarg);
 			}
 			break;
+		case LO_FADE_OUT:
+			if (state) {
+				state->args.fade_out = parse_seconds(optarg);
+			}
+			break;
 		case LO_SUBMIT_ON_TOUCH:
 			if (state) {
 				state->args.password_submit_on_touch = true;
@@ -1702,7 +1722,12 @@ static void end_grace_period(void *data) {
 static void comm_in(int fd, short mask, void *data) {
 	if (read_comm_reply()) {
 		// Authentication succeeded
-		state.run_display = false;
+		if ( state.args.fade_out != 0 ){
+			damage_state(&state);
+			state.quitting=true;
+		} else {
+			state.run_display = false;
+		}
 	} else {
 		state.auth_state = AUTH_STATE_INVALID;
 		schedule_indicator_clear(&state);

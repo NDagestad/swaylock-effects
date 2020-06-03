@@ -77,6 +77,7 @@ struct swaylock_args {
 	char *datestr;
 	uint32_t fade_in;
 	bool password_submit_on_touch;
+	uint32_t fade_out;
 	uint32_t password_grace_period;
 	bool password_grace_no_mouse;
 	bool password_grace_no_touch;
@@ -109,6 +110,7 @@ struct swaylock_state {
 	int failed_attempts;
 	size_t n_screenshots_done;
 	bool run_display;
+	bool quitting;
 	struct zxdg_output_manager_v1 *zxdg_output_manager;
 };
 

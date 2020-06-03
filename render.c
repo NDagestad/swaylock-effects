@@ -127,7 +127,7 @@ void render_background_fade(struct swaylock_surface *surface, uint32_t time) {
 }
 
 void render_background_fade_prepare(struct swaylock_surface *surface, struct pool_buffer *buffer) {
-	if (fade_is_complete(&surface->fade)) {
+	if (!surface->state->args.fade_in && !surface->state->args.fade_out) {
 		return;
 	}
 

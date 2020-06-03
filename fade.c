@@ -74,16 +74,12 @@ static void set_alpha_slow(uint32_t *orig, struct pool_buffer *buf, float alpha)
 #endif
 
 void fade_prepare(struct swaylock_fade *fade, struct pool_buffer *buffer) {
-	if (!fade->target_time) {
-		fade->original_buffer = NULL;
-		return;
-	}
-
 	size_t size = (size_t)buffer->width * (size_t)buffer->height * 4;
 	fade->original_buffer = malloc(size);
 	memcpy(fade->original_buffer, buffer->data, size);
-
-	set_alpha(fade->original_buffer, buffer, 0);
+	if (fade->target_time) {
+		set_alpha(fade->original_buffer, buffer, 0);
+	}
 }
 
 void fade_update(struct swaylock_fade *fade, struct pool_buffer *buffer, uint32_t time) {
@@ -102,7 +98,12 @@ void fade_update(struct swaylock_fade *fade, struct pool_buffer *buffer, uint32_
 		fade->current_time = fade->target_time;
 	}
 
-	double alpha = (double)fade->current_time / (double)fade->target_time;
+	double alpha=1;
+	if ( fade->direction == IN ){
+		alpha = (double)fade->current_time / (double)fade->target_time;
+	} else if ( fade->direction == OUT ){
+		alpha = 1 - (double)(fade->current_time-fade->start_time) / (double)(fade->target_time-fade->start_time);
+	}
 
 #ifdef FADE_PROFILE
 	double before = get_time();

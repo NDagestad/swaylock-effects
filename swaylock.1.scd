@@ -38,6 +38,9 @@ Locks your Wayland session.
 *--fade-in* <seconds>
 	Fade in the lock screen.
 
+*--fade-out* <seconds>
+	Fade out the lock screen.
+
 *--submit-on-touch*
 	Submit password in response to a touch event.
 

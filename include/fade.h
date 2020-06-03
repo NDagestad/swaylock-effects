@@ -6,11 +6,18 @@
 
 struct pool_buffer;
 
+enum fade_direction {
+	IN,
+	OUT,
+};
+
 struct swaylock_fade {
 	float current_time;
 	float target_time;
 	uint32_t old_time;
+	uint32_t start_time;
 	uint32_t *original_buffer;
+	enum fade_direction direction;
 };
 
 void fade_prepare(struct swaylock_fade *fade, struct pool_buffer *buffer);
